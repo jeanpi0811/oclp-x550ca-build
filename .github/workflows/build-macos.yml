@@ -32,6 +32,7 @@ jobs:
         run: python Build-Project.command --run-as-individual-steps --prepare-assets --prepare-application --reset-pyinstaller-cache --git-branch "${GITHUB_REF_NAME}" --git-commit-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}" --git-commit-date "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       - name: Package EFI
+        if: ${{ hashFiles('EFI/**') != '' }}
         run: ditto -c -k --sequesterRsrc --keepParent EFI EFI-X550CA-Sequoia-15.7.7.zip
 
       - name: Package combined deliverable
@@ -44,6 +45,7 @@ jobs:
           path: OCLP-X550CA-customized.app.zip
 
       - name: Upload EFI artifact
+        if: ${{ hashFiles('EFI/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: OCLP-X550CA-Sequoia-15.7.7-EFI
