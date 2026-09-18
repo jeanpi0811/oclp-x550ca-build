@@ -1,0 +1,50 @@
+name: Build OCLP X550CA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: oclp-x550ca-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Validate customized detector
+        run: python -m py_compile opencore_legacy_patcher/datasets/pci_data.py opencore_legacy_patcher/detections/device_probe.py
+
+      - name: Build unsigned macOS application
+        run: python Build-Project.command --run-as-individual-steps --prepare-assets --prepare-application --reset-pyinstaller-cache --git-branch "${GITHUB_REF_NAME}" --git-commit-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}" --git-commit-date "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Package EFI
+        run: ditto -c -k --sequesterRsrc --keepParent EFI EFI-X550CA-Sequoia-15.7.7.zip
+
+      - name: Package combined deliverable
+        run: ditto -c -k --sequesterRsrc --keepParent dist/OpenCore-Patcher.app OCLP-X550CA-customized.app.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OCLP-X550CA-Sequoia-15.7.7-app
+          path: OCLP-X550CA-customized.app.zip
+
+      - name: Upload EFI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OCLP-X550CA-Sequoia-15.7.7-EFI
+          path: EFI-X550CA-Sequoia-15.7.7.zip
